@@ -1,7 +1,6 @@
 variable "environment" {}
 variable "location" {}
 variable "resource_group_name" {}
-variable "acr_name" {}
 variable "vm_name" {}
 variable "vm_size" {}
 variable "vm_admin_username" {}
