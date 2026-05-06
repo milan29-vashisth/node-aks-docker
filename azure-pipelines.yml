@@ -1,0 +1,73 @@
+trigger:
+  - main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  imageRepository: node-aks-app
+  dockerfilePath: app/Dockerfile
+  buildContext: app
+  tag: $(Build.BuildId)
+
+stages:
+
+# ==========================================
+# STAGE 1 - TERRAFORM INFRA
+# ==========================================
+- stage: TerraformInfra
+  displayName: Terraform Infrastructure Provisioning
+
+  jobs:
+    - job: TerraformApply
+      displayName: Terraform Init and Apply
+
+      steps:
+        - checkout: self
+
+        - task: TerraformInstaller@1
+          displayName: Install Terraform
+          inputs:
+            terraformVersion: latest
+
+        - task: TerraformTaskV4@4
+          displayName: Terraform Init
+          inputs:
+            provider: azurerm
+            command: init
+            workingDirectory: infra
+            environmentServiceNameAzureRM: 'azure-rm-service-connection'
+
+        - task: TerraformTaskV4@4
+          displayName: Terraform Apply
+          inputs:
+            provider: azurerm
+            command: apply
+            workingDirectory: infra
+            environmentServiceNameAzureRM: 'azure-rm-service-connection'
+
+# ==========================================
+# STAGE 2 - DOCKER BUILD AND PUSH
+# ==========================================
+- stage: DockerBuildPush
+  displayName: Build and Push Docker Image
+  dependsOn: TerraformInfra
+
+  jobs:
+    - job: BuildPush
+      displayName: Docker Build and Push
+
+      steps:
+        - checkout: self
+
+        - task: Docker@2
+          displayName: Build and Push Docker Image
+          inputs:
+            containerRegistry: 'acr-service-connection'
+            repository: '$(imageRepository)'
+            command: buildAndPush
+            Dockerfile: '$(dockerfilePath)'
+            buildContext: '$(buildContext)'
+            tags: |
+              $(tag)
+              latest
