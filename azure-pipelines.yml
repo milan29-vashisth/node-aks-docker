@@ -1,5 +1,8 @@
 trigger:
-  - main
+  batch: true
+  branches:
+    include:
+      - main
 
 pool:
   vmImage: ubuntu-latest
@@ -13,23 +16,25 @@ variables:
 stages:
 
 # ==========================================
-# STAGE 1 - TERRAFORM INFRA
+# STAGE 1 - TERRAFORM INFRA (SAFE)
 # ==========================================
 - stage: TerraformInfra
-  displayName: Terraform Infrastructure Provisioning
+  displayName: Terraform Infrastructure
 
   jobs:
-    - job: TerraformApply
-      displayName: Terraform Init and Apply
+    - job: Terraform
+      displayName: Terraform Init Plan Apply
 
       steps:
         - checkout: self
 
+        # Install Terraform
         - task: TerraformInstaller@1
           displayName: Install Terraform
           inputs:
             terraformVersion: latest
 
+        # INIT (Backend configured)
         - task: TerraformTaskV4@4
           displayName: Terraform Init
           inputs:
@@ -41,7 +46,17 @@ stages:
             backendAzureRmContainerName: 'tfstate'
             backendAzureRmKey: 'acr-terraform.tfstate'
             workingDirectory: infra
-           
+
+        # PLAN
+        - task: TerraformTaskV4@4
+          displayName: Terraform Plan
+          inputs:
+            provider: azurerm
+            command: plan
+            workingDirectory: infra
+            environmentServiceNameAzureRM: 'azure-rm-service-connection'
+
+        # APPLY (safe with lock timeout)
         - task: TerraformTaskV4@4
           displayName: Terraform Apply
           inputs:
@@ -49,27 +64,28 @@ stages:
             command: apply
             workingDirectory: infra
             environmentServiceNameAzureRM: 'azure-rm-service-connection'
+            args: '-auto-approve -lock-timeout=5m'
 
 # ==========================================
-# STAGE 2 - DOCKER BUILD AND PUSH
+# STAGE 2 - DOCKER BUILD & PUSH TO ACR
 # ==========================================
 - stage: DockerBuildPush
   displayName: Build and Push Docker Image
   dependsOn: TerraformInfra
 
   jobs:
-    - job: BuildPush
-      displayName: Docker Build and Push
+    - job: Docker
+      displayName: Docker Build Push
 
       steps:
         - checkout: self
 
         - task: Docker@2
-          displayName: Build and Push Docker Image
+          displayName: Build and Push to ACR
           inputs:
+            command: buildAndPush
             containerRegistry: 'acr-service-connection-milan'
             repository: '$(imageRepository)'
-            command: buildAndPush
             Dockerfile: '$(dockerfilePath)'
             buildContext: '$(buildContext)'
             tags: |
