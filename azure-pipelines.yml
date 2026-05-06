@@ -23,7 +23,7 @@ variables:
 stages:
 
 # ==========================================
-# STAGE 1 - TERRAFORM (USE MICROSOFT AGENT)
+# STAGE 1 - TERRAFORM (INFRA CREATION)
 # ==========================================
 - stage: TerraformInfra
   displayName: Terraform Infrastructure
@@ -31,7 +31,7 @@ stages:
   jobs:
     - job: Terraform
       pool:
-        vmImage: ubuntu-latest   # ✅ IMPORTANT FIX
+        vmImage: ubuntu-latest   # IMPORTANT: hosted agent for bootstrap
 
       steps:
         - checkout: self
@@ -45,13 +45,13 @@ stages:
           inputs:
             provider: azurerm
             command: init
+            workingDirectory: infra
             backendServiceArm: 'azure-rm-service-connection'
             backendAzureRmResourceGroupName: 'tf-backend-rg'
             backendAzureRmStorageAccountName: 'tfstatestorage292929'
             backendAzureRmContainerName: 'tfstate'
             backendAzureRmKey: 'acr-terraform.tfstate'
-            workingDirectory: infra
-        
+
         - task: TerraformTaskV4@4
           displayName: Terraform Apply
           inputs:
@@ -59,4 +59,14 @@ stages:
             command: apply
             workingDirectory: infra
             environmentServiceNameAzureRM: 'azure-rm-service-connection'
-            args: '-auto-approve -lock-timeout=10m -var="acr_name=$(TF_VAR_acr_name)"'
+            args: >
+              -auto-approve
+              -lock-timeout=10m
+              -var="acr_name=$(TF_VAR_acr_name)"
+              -var="resource_group_name=$(TF_VAR_resource_group_name)"
+              -var="location=$(TF_VAR_location)"
+              -var="vm_name=$(TF_VAR_vm_name)"
+              -var="vm_size=$(TF_VAR_vm_size)"
+              -var="vm_admin_username=$(TF_VAR_vm_admin_username)"
+              -var="vm_admin_password=$(TF_VAR_vm_admin_password)"
+              -var="dns_label=$(TF_VAR_dns_label)"
