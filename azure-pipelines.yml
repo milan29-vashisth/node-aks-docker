@@ -51,7 +51,7 @@ stages:
             backendAzureRmContainerName: 'tfstate'
             backendAzureRmKey: 'acr-terraform.tfstate'
             workingDirectory: infra
-
+        
         - task: TerraformTaskV4@4
           displayName: Terraform Apply
           inputs:
@@ -59,4 +59,4 @@ stages:
             command: apply
             workingDirectory: infra
             environmentServiceNameAzureRM: 'azure-rm-service-connection'
-            args: '-auto-approve -lock-timeout=10m'
+            args: '-auto-approve -lock-timeout=10m -var="acr_name=$(TF_VAR_acr_name)"'
