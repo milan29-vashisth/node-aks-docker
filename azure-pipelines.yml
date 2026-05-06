@@ -4,10 +4,6 @@ trigger:
     include:
       - main
 
-# ❗ IMPORTANT: use your self-hosted agent pool
-pool:
-  name: Default   # 🔥 change this to your actual agent pool name
-
 variables:
   imageRepository: node-aks-app
   dockerfilePath: app/Dockerfile
@@ -27,13 +23,16 @@ variables:
 stages:
 
 # ==========================================
-# STAGE 1 - TERRAFORM
+# STAGE 1 - TERRAFORM (USE MICROSOFT AGENT)
 # ==========================================
 - stage: TerraformInfra
   displayName: Terraform Infrastructure
 
   jobs:
     - job: Terraform
+      pool:
+        vmImage: ubuntu-latest   # ✅ IMPORTANT FIX
+
       steps:
         - checkout: self
 
@@ -61,42 +60,3 @@ stages:
             workingDirectory: infra
             environmentServiceNameAzureRM: 'azure-rm-service-connection'
             args: '-auto-approve -lock-timeout=10m'
-
-# ==========================================
-# STAGE 2 - DOCKER BUILD + RUN ON VM
-# ==========================================
-- stage: DockerDeploy
-  displayName: Build & Run on Self-Hosted VM
-  dependsOn: TerraformInfra
-
-  jobs:
-    - job: Deploy
-      steps:
-        - checkout: self
-
-        # 🔥 Login to ACR using Azure CLI (BEST for self-hosted)
-        - task: AzureCLI@2
-          displayName: ACR Login
-          inputs:
-            azureSubscription: 'azure-rm-service-connection'
-            scriptType: bash
-            scriptLocation: inlineScript
-            inlineScript: |
-              az acr login --name noderegistrydemo12345
-
-        # 🔥 Build image locally on VM
-        - script: |
-            docker build -t noderegistrydemo12345.azurecr.io/node-aks-app:$(tag) -f app/Dockerfile app
-          displayName: Build Docker Image
-
-        # 🔥 Push to ACR
-        - script: |
-            docker push noderegistrydemo12345.azurecr.io/node-aks-app:$(tag)
-          displayName: Push Image to ACR
-
-        # 🔥 Run container directly on SAME VM (your agent machine)
-        - script: |
-            docker stop nodeapp || true
-            docker rm nodeapp || true
-            docker run -d -p 80:3000 --name nodeapp noderegistrydemo12345.azurecr.io/node-aks-app:$(tag)
-          displayName: Run Container on VM
