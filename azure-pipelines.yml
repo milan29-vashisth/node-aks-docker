@@ -36,6 +36,7 @@ stages:
             provider: azurerm
             command: init
             workingDirectory: infra
+            backendType: local
             environmentServiceNameAzureRM: 'azure-rm-service-connection'
 
         - task: TerraformTaskV4@4
