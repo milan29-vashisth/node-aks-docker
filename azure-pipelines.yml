@@ -35,10 +35,13 @@ stages:
           inputs:
             provider: azurerm
             command: init
+            backendServiceArm: 'azure-rm-service-connection'
+            backendAzureRmResourceGroupName: 'tf-backend-rg'
+            backendAzureRmStorageAccountName: 'tfstatestorage292929'
+            backendAzureRmContainerName: 'tfstate'
+            backendAzureRmKey: 'acr-terraform.tfstate'
             workingDirectory: infra
-            backendType: local
-            environmentServiceNameAzureRM: 'azure-rm-service-connection'
-
+           
         - task: TerraformTaskV4@4
           displayName: Terraform Apply
           inputs:
