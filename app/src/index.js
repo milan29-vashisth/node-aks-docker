@@ -8,7 +8,7 @@ app.get("/", (req, res) => {
     <!DOCTYPE html>
     <html>
     <head>
-      <title>AKS Node App</title>
+      <title>AKS Node App By Milan</title>
       <style>
         body {
           margin: 0;
@@ -58,11 +58,11 @@ app.get("/", (req, res) => {
     </head>
     <body>
       <div class="card">
-        <h1>🚀 AKS Deployment Successful</h1>
+        <h1>🚀 AKS Deployment Successful by Milan</h1>
         <p>Your Node.js application is running on Kubernetes.</p>
         <div class="status">Healthy</div>
         <div class="footer">
-          Powered by Node.js + Docker + AKS ++
+          Powered by Node.js + Docker + AKS 
         </div>
       </div>
     </body>
