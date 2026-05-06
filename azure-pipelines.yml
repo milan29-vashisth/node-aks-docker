@@ -4,34 +4,28 @@ trigger:
     include:
       - main
 
+# ==========================================
+# VARIABLES
+# ==========================================
 variables:
   imageRepository: node-aks-app
   dockerfilePath: app/Dockerfile
   buildContext: app
   tag: $(Build.BuildId)
 
-  # Terraform variables
-  TF_VAR_resource_group_name: "tfstate-rg"
-  TF_VAR_location: "East US"
-  TF_VAR_acr_name: "noderegistrydemo12345"
-  TF_VAR_vm_name: "node-vm"
-  TF_VAR_vm_size: "Standard_B1s"
-  TF_VAR_vm_admin_username: "azureuser"
-  TF_VAR_vm_admin_password: "StrongPass@123!"
-  TF_VAR_dns_label: "nodevm12345"
-
 stages:
 
 # ==========================================
-# STAGE 1 - TERRAFORM (INFRA CREATION)
+# STAGE 1 - TERRAFORM (CREATE ACR + VM)
+# Runs on Microsoft Hosted Agent
 # ==========================================
 - stage: TerraformInfra
-  displayName: Terraform Infrastructure
+  displayName: Create ACR + VM
 
   jobs:
     - job: Terraform
       pool:
-        vmImage: ubuntu-latest   # IMPORTANT: hosted agent for bootstrap
+        vmImage: ubuntu-latest
 
       steps:
         - checkout: self
@@ -53,20 +47,62 @@ stages:
             backendAzureRmKey: 'acr-terraform.tfstate'
 
         - task: TerraformTaskV4@4
+          displayName: Terraform Plan
+          inputs:
+            provider: azurerm
+            command: plan
+            workingDirectory: infra
+            environmentServiceNameAzureRM: 'azure-rm-service-connection'
+
+        - task: TerraformTaskV4@4
           displayName: Terraform Apply
           inputs:
             provider: azurerm
             command: apply
             workingDirectory: infra
             environmentServiceNameAzureRM: 'azure-rm-service-connection'
-            args: >
-              -auto-approve
-              -lock-timeout=10m
-              -var="acr_name=$(TF_VAR_acr_name)"
-              -var="resource_group_name=$(TF_VAR_resource_group_name)"
-              -var="location=$(TF_VAR_location)"
-              -var="vm_name=$(TF_VAR_vm_name)"
-              -var="vm_size=$(TF_VAR_vm_size)"
-              -var="vm_admin_username=$(TF_VAR_vm_admin_username)"
-              -var="vm_admin_password=$(TF_VAR_vm_admin_password)"
-              -var="dns_label=$(TF_VAR_dns_label)"
+            args: '-auto-approve -lock-timeout=10m'
+
+
+# ==========================================
+# STAGE 2 - DOCKER DEPLOY (SELF-HOSTED VM)
+# Runs on YOUR VM agent
+# ==========================================
+- stage: DeployOnVM
+  displayName: Deploy on Self-Hosted VM
+  dependsOn: TerraformInfra
+
+  jobs:
+    - job: Deploy
+      pool:
+        name: Default   # 👈 YOUR SELF-HOSTED AGENT POOL NAME
+
+      steps:
+        - checkout: self
+
+        # Login to Azure Container Registry
+        - task: AzureCLI@2
+          displayName: Login to ACR
+          inputs:
+            azureSubscription: 'azure-rm-service-connection'
+            scriptType: bash
+            scriptLocation: inlineScript
+            inlineScript: |
+              az acr login --name noderegistrydemo12345
+
+        # Build Docker image on VM
+        - script: |
+            docker build -t noderegistrydemo12345.azurecr.io/node-aks-app:$(tag) -f app/Dockerfile app
+          displayName: Build Docker Image
+
+        # Push Docker image to ACR
+        - script: |
+            docker push noderegistrydemo12345.azurecr.io/node-aks-app:$(tag)
+          displayName: Push Docker Image
+
+        # Run container on SAME VM
+        - script: |
+            docker stop nodeapp || true
+            docker rm nodeapp || true
+            docker run -d -p 80:3000 --name nodeapp noderegistrydemo12345.azurecr.io/node-aks-app:$(tag)
+          displayName: Run Container
