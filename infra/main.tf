@@ -6,13 +6,13 @@ resource "azurerm_resource_group" "rg" {
 module "acr" {
   source              = "./modules/acr"
   acr_name            = var.acr_name
-  resource_group_name = azurerm_resource_group.rg.name
+  resource_group_name = var.resource_group_name
   location            = var.location
 }
 
 module "vm" {
   source              = "./modules/vm"
-  resource_group_name = azurerm_resource_group.rg.name
+  resource_group_name = var.resource_group_name
   location            = var.location
   vm_name             = var.vm_name
   vm_size             = var.vm_size
@@ -26,7 +26,7 @@ module "aks" {
   source              = "./modules/aks"
   aks_name            = var.aks_name
   location            = var.location
-  resource_group_name = azurerm_resource_group.rg.name
+  resource_group_name = var.resource_group_name
   dns_prefix          = var.dns_prefix
   kubernetes_version  = var.kubernetes_version
   node_count          = var.node_count
