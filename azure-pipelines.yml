@@ -4,9 +4,6 @@ trigger:
     include:
       - main
 
-# ==========================================
-# VARIABLES
-# ==========================================
 variables:
   imageRepository: node-aks-app
   dockerfilePath: app/Dockerfile
@@ -16,11 +13,10 @@ variables:
 stages:
 
 # ==========================================
-# STAGE 1 - TERRAFORM (CREATE ACR + VM)
-# Runs on Microsoft Hosted Agent
+# STAGE 1 - TERRAFORM
 # ==========================================
 - stage: TerraformInfra
-  displayName: Create ACR + VM
+  displayName: "Terraform Infra"
 
   jobs:
     - job: Terraform
@@ -47,6 +43,13 @@ stages:
             backendAzureRmKey: 'acr-terraform.tfstate'
 
         - task: TerraformTaskV4@4
+          displayName: Terraform Validate
+          inputs:
+            provider: azurerm
+            command: validate
+            workingDirectory: infra
+
+        - task: TerraformTaskV4@4
           displayName: Terraform Plan
           inputs:
             provider: azurerm
@@ -60,49 +63,5 @@ stages:
             provider: azurerm
             command: apply
             workingDirectory: infra
+            commandOptions: '-auto-approve -lock-timeout=10m'
             environmentServiceNameAzureRM: 'azure-rm-service-connection'
-            args: '-auto-approve -lock-timeout=10m'
-
-
-# ==========================================
-# STAGE 2 - DOCKER DEPLOY (SELF-HOSTED VM)
-# Runs on YOUR VM agent
-# ==========================================
-- stage: DeployOnVM
-  displayName: Deploy on Self-Hosted VM
-  dependsOn: TerraformInfra
-
-  jobs:
-    - job: Deploy
-      pool:
-        name: Default   # 👈 YOUR SELF-HOSTED AGENT POOL NAME
-
-      steps:
-        - checkout: self
-
-        # Login to Azure Container Registry
-        - task: AzureCLI@2
-          displayName: Login to ACR
-          inputs:
-            azureSubscription: 'azure-rm-service-connection'
-            scriptType: bash
-            scriptLocation: inlineScript
-            inlineScript: |
-              az acr login --name noderegistrydemo12345
-
-        # Build Docker image on VM
-        - script: |
-            docker build -t noderegistrydemo12345.azurecr.io/node-aks-app:$(tag) -f app/Dockerfile app
-          displayName: Build Docker Image
-
-        # Push Docker image to ACR
-        - script: |
-            docker push noderegistrydemo12345.azurecr.io/node-aks-app:$(tag)
-          displayName: Push Docker Image
-
-        # Run container on SAME VM
-        - script: |
-            docker stop nodeapp || true
-            docker rm nodeapp || true
-            docker run -d -p 80:3000 --name nodeapp noderegistrydemo12345.azurecr.io/node-aks-app:$(tag)
-          displayName: Run Container
