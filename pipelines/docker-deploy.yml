@@ -13,7 +13,7 @@ trigger:
 variables:
   tag: $(Build.BuildId)
 
-  ACR_NAME: nodeacr6kp9w
+  ACR_NAME: nodeacr98y0j 
   IMAGE_NAME: node-docker-aks
   CONTAINER_NAME: nodeapp
 
