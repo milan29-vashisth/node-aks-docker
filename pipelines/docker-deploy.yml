@@ -13,40 +13,38 @@ trigger:
 variables:
   tag: $(Build.BuildId)
 
-  # ==========================================
-  # UPDATE THESE VALUES
-  # ==========================================
   ACR_NAME: nodeacr6kp9w
   IMAGE_NAME: node-docker-aks
   CONTAINER_NAME: nodeapp
 
 stages:
 
-# ==========================================
-# STAGE - BUILD & DEPLOY ON SELF-HOSTED VM
-# ==========================================
 - stage: DockerDeploy
   displayName: Docker Build and Deploy
 
   jobs:
     - job: DeployContainer
 
-      # ==========================================
-      # YOUR SELF-HOSTED AGENT POOL
-      # ==========================================
       pool:
         name: node-docker-aks
-
 
       steps:
 
         # ==========================================
-        # CHECKOUT CODE
+        # CHECKOUT REPO
         # ==========================================
         - checkout: self
 
         # ==========================================
-        # LOGIN TO AZURE
+        # DEBUG STRUCTURE
+        # ==========================================
+        - script: |
+            pwd
+            ls -R
+          displayName: Debug Repo Structure
+
+        # ==========================================
+        # LOGIN TO ACR
         # ==========================================
         - task: AzureCLI@2
           displayName: Azure Login + ACR Login
@@ -58,23 +56,23 @@ stages:
               az acr login --name $(ACR_NAME)
 
         # ==========================================
-        # BUILD DOCKER IMAGE
+        # BUILD IMAGE
         # ==========================================
         - script: |
             docker build \
-            -t $(ACR_NAME).azurecr.io/$(IMAGE_NAME):$(tag) \
-            -f Dockerfile .
+              -t $(ACR_NAME).azurecr.io/$(IMAGE_NAME):$(tag) \
+              -f Dockerfile .
           displayName: Build Docker Image
 
         # ==========================================
-        # PUSH IMAGE TO ACR
+        # PUSH IMAGE
         # ==========================================
         - script: |
             docker push $(ACR_NAME).azurecr.io/$(IMAGE_NAME):$(tag)
           displayName: Push Docker Image
 
         # ==========================================
-        # STOP OLD CONTAINER
+        # REMOVE OLD CONTAINER
         # ==========================================
         - script: |
             docker stop $(CONTAINER_NAME) || true
@@ -93,7 +91,7 @@ stages:
           displayName: Run New Container
 
         # ==========================================
-        # VERIFY CONTAINER
+        # VERIFY
         # ==========================================
         - script: |
             docker ps
