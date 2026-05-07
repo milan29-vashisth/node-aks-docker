@@ -9,6 +9,6 @@ vm_size             = "Standard_B1s"
 vm_name             = "node-dev-vm"
 aks_name            = "node-aks-demo-milan"
 dns_prefix          = "nodeaksdemomilan"
-kubernetes_version = "1.30.9"
+kubernetes_version  = "1.34.6"
 node_count          = 1
 aks_vm_size         = "Standard_B2s"
