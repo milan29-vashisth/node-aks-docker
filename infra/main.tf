@@ -18,3 +18,21 @@ module "vm" {
   dns_label         = var.dns_label
   environment        = var.environment
 }
+
+module "aks" {
+  source = "./modules/aks"
+
+  aks_name           = var.aks_name
+  location           = var.location
+  resource_group_name = azurerm_resource_group.rg.name
+
+  dns_prefix         = var.dns_prefix
+
+  kubernetes_version = var.kubernetes_version
+  node_count         = var.node_count
+  aks_vm_size            = var.aks_vm_size
+
+  environment        = var.environment
+
+  acr_id             = module.acr.acr_id
+}

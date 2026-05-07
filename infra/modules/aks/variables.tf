@@ -24,11 +24,10 @@ variable "node_count" {
   default = 1
 }
 
-variable "vm_size" {
+variable "aks_vm_size" {
   type    = string
   default = "Standard_B2s"
 }
-
 variable "environment" {
   type = string
 }
