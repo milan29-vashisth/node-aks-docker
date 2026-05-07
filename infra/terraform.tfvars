@@ -1,5 +1,5 @@
 acr_name = "noderegistrydemo12345"
-resource_group_name = "tfstate-rg"
+resource_group_name = "tfstate-milan-rg"
 location = "East US"
 dns_label = "nodevm12345"
 environment = "dev"
