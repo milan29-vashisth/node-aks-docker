@@ -5,3 +5,7 @@ output "vm_public_ip" {
 output "vm_fqdn" {
   value = azurerm_public_ip.vm_pip.fqdn
 }
+
+output "resource_group_name" {
+  value = azurerm_resource_group.rg.name
+}
