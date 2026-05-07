@@ -62,8 +62,8 @@ stages:
         # ==========================================
         - script: |
             docker build \
-              -t $(ACR_NAME).azurecr.io/$(IMAGE_NAME):$(tag) \
-              -f app/Dockerfile app
+            -t $(ACR_NAME).azurecr.io/$(IMAGE_NAME):$(tag) \
+            -f Dockerfile .
           displayName: Build Docker Image
 
         # ==========================================
