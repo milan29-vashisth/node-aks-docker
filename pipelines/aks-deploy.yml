@@ -43,6 +43,7 @@ stages:
 
             inlineScript: |
               az aks get-credentials \
+               --resource-group tfstate-milan-rg \
                 --name $(ACR_NAME) \
                 --repository $(IMAGE_NAME) \
                 --output table
