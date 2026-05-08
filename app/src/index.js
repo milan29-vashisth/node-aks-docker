@@ -59,7 +59,7 @@ app.get("/", (req, res) => {
     <body>
       <div class="card">
         <h1>🚀 AKS Deployment Successful by Milan</h1>
-        <p>Your Node.js application is running on Kubernetes.</p>
+        <p>Your Node.js application is running on Kubernetes. By mIln Vashisth fain</p>
         <div class="status">Healthy</div>
         <div class="footer">
           Powered by Node.js + Docker + AKS 
