@@ -1,27 +1,66 @@
 trigger:
-- main
+  - main
 
 pool:
-  vmImage: ubuntu-latest
+  name: node-docker-aks
 
 stages:
 
+# ==========================================
+# DEPLOY TO AKS
+# ==========================================
 - stage: DeployToAKS
 
+  displayName: Deploy Application to AKS
+
   jobs:
-  - job: AKSDeployment
 
-    steps:
+    - job: AKSDeployment
 
-    - task: KubernetesManifest@1
-      displayName: Deploy to AKS
+      displayName: AKS Deployment Job
 
-      inputs:
-        action: deploy
+      steps:
 
-        kubernetesServiceConnection: 'aks-service-connection'
+        # ==========================================
+        # CHECKOUT CODE
+        # ==========================================
+        - checkout: self
 
-        manifests: |
-          k8s/deployment.yaml
-          k8s/service.yaml
-          k8s/ingress.yaml
+        # ==========================================
+        # LOGIN TO AKS
+        # ==========================================
+        - task: AzureCLI@2
+
+          displayName: AKS Login
+
+          inputs:
+            azureSubscription: 'aks-service-connection'
+
+            scriptType: bash
+            scriptLocation: inlineScript
+
+            inlineScript: |
+              az aks get-credentials \
+                --resource-group tfstate-milan-rg \
+                --name node-aks-demo-milan \
+                --overwrite-existing
+
+        # ==========================================
+        # DEPLOY TO AKS
+        # ==========================================
+        - script: |
+            kubectl apply -f k8s/deployment.yaml
+            kubectl apply -f k8s/service.yaml
+            kubectl apply -f k8s/ingress.yaml
+
+          displayName: Deploy Kubernetes Resources
+
+        # ==========================================
+        # VERIFY
+        # ==========================================
+        - script: |
+            kubectl get pods
+            kubectl get svc
+            kubectl get ingress
+
+          displayName: Verify Deployment
