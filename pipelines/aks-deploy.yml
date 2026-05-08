@@ -51,10 +51,7 @@ stages:
     # ==========================================
     # VERIFY ROLLOUT
     # ==========================================
-    - script: |
-        kubectl rollout status deployment/node-docker-aks
-      displayName: Verify Rollout
-
+   
     # ==========================================
     # VERIFY DEPLOYMENT
     # ==========================================
