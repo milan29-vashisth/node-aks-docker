@@ -4,63 +4,59 @@ trigger:
 pool:
   name: node-docker-aks
 
+variables:
+  ACR_NAME: nodeacr98y0j
+  IMAGE_NAME: node-docker-aks
+  IMAGE_TAG: $(Build.BuildId)
+
 stages:
 
-# ==========================================
-# DEPLOY TO AKS
-# ==========================================
 - stage: DeployToAKS
-
-  displayName: Deploy Application to AKS
+  displayName: Deploy to AKS
 
   jobs:
+  - job: AKSDeploy
+    displayName: AKS Deployment Job
 
-    - job: AKSDeployment
+    steps:
 
-      displayName: AKS Deployment Job
+    # ==========================================
+    # CHECKOUT
+    # ==========================================
+    - checkout: self
 
-      steps:
+    # ==========================================
+    # LOGIN TO AKS
+    # ==========================================
+    - task: AzureCLI@2
+      displayName: AKS Login
+      inputs:
+        azureSubscription: 'aks-service-connection'
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
+          az aks get-credentials \
+            --resource-group tfstate-milan-rg \
+            --name node-aks-demo-milan \
+            --overwrite-existing
 
-        # ==========================================
-        # CHECKOUT CODE
-        # ==========================================
-        - checkout: self
+    # ==========================================
+    # UPDATE IMAGE
+    # ==========================================
+    - script: |
+        kubectl set image deployment/node-docker-aks \
+        node-docker-aks=$(ACR_NAME).azurecr.io/$(IMAGE_NAME):$(IMAGE_TAG)
+      displayName: Update AKS Image
 
-        # ==========================================
-        # LOGIN TO AKS
-        # ==========================================
-        - task: AzureCLI@2
-
-          displayName: AKS Login
-
-          inputs:
-            azureSubscription: 'aks-service-connection'
-
-            scriptType: bash
-            scriptLocation: inlineScript
-
-            inlineScript: |
-              az aks get-credentials \
-                --resource-group tfstate-milan-rg \
-                --name node-aks-demo-milan \
-                --overwrite-existing
-
-        # ==========================================
-        # DEPLOY TO AKS
-        # ==========================================
-        - script: |
-            kubectl apply -f k8s/deployment.yaml
-            kubectl apply -f k8s/service.yaml
-            kubectl apply -f k8s/ingress.yaml
-
-          displayName: Deploy Kubernetes Resources
-
-        # ==========================================
-        # VERIFY
-        # ==========================================
-        - script: |
-            kubectl get pods
-            kubectl get svc
-            kubectl get ingress
-
-          displayName: Verify Deployment
+    # ==========================================
+    # VERIFY ROLLOUT
+    # ==========================================
+   
+    # ==========================================
+    # VERIFY DEPLOYMENT
+    # ==========================================
+    - script: |
+        kubectl get pods
+        kubectl get svc
+        kubectl get ingress
+      displayName: Verify Deployment
