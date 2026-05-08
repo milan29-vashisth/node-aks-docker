@@ -43,11 +43,9 @@ stages:
 
             inlineScript: |
               az aks get-credentials \
-               --resource-group tfstate-milan-rg \
-                --name $(ACR_NAME) \
-                --repository $(IMAGE_NAME) \
-                --output table
-
+              --resource-group tfstate-milan-rg \
+              --name node-aks-demo-milan \
+              --overwrite-existing
         # ==========================================
         # UPDATE IMAGE
         # ==========================================
