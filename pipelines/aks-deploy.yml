@@ -49,10 +49,11 @@ stages:
         # ==========================================
         # UPDATE IMAGE
         # ==========================================
-        - script: |
+        
 
+        - script: |
             kubectl set image deployment/node-docker-aks \
-            node-docker-aks=$(ACR_NAME).azurecr.io/$(IMAGE_NAME):$(tag)
+            node-docker-aks=$(ACR_NAME).azurecr.io/$(IMAGE_NAME):$(Build.BuildId)
 
           displayName: Update AKS Image
 
