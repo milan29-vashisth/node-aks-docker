@@ -1,0 +1,27 @@
+trigger:
+- main
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+
+- stage: DeployToAKS
+
+  jobs:
+  - job: AKSDeployment
+
+    steps:
+
+    - task: KubernetesManifest@1
+      displayName: Deploy to AKS
+
+      inputs:
+        action: deploy
+
+        kubernetesServiceConnection: 'aks-service-connection'
+
+        manifests: |
+          k8s/deployment.yaml
+          k8s/service.yaml
+          k8s/ingress.yaml
