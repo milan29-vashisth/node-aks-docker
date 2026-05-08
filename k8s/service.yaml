@@ -9,6 +9,7 @@ spec:
 
   selector:
     app: node-docker-aks
+
   ports:
   - protocol: TCP
     port: 80
