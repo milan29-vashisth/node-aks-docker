@@ -4,25 +4,27 @@ trigger:
 pool:
   name: node-docker-aks
 
+variables:
+  ACR_NAME: nodeacr98y0j
+  IMAGE_NAME: node-docker-aks
+  tag: $(Build.BuildId)
+
 stages:
 
-# ==========================================
-# DEPLOY TO AKS
-# ==========================================
 - stage: DeployToAKS
 
-  displayName: Deploy Application to AKS
+  displayName: Deploy to AKS
 
   jobs:
 
-    - job: AKSDeployment
+    - job: AKSDeploy
 
       displayName: AKS Deployment Job
 
       steps:
 
         # ==========================================
-        # CHECKOUT CODE
+        # CHECKOUT
         # ==========================================
         - checkout: self
 
@@ -46,19 +48,29 @@ stages:
                 --overwrite-existing
 
         # ==========================================
-        # DEPLOY TO AKS
+        # UPDATE IMAGE
         # ==========================================
         - script: |
-            kubectl apply -f k8s/deployment.yaml
-            kubectl apply -f k8s/service.yaml
-            kubectl apply -f k8s/ingress.yaml
 
-          displayName: Deploy Kubernetes Resources
+            kubectl set image deployment/node-docker-aks \
+            node-docker-aks=$(ACR_NAME).azurecr.io/$(IMAGE_NAME):$(tag)
+
+          displayName: Update AKS Image
 
         # ==========================================
-        # VERIFY
+        # VERIFY ROLLOUT
         # ==========================================
         - script: |
+
+            kubectl rollout status deployment/node-docker-aks
+
+          displayName: Verify Rollout
+
+        # ==========================================
+        # VERIFY DEPLOYMENT
+        # ==========================================
+        - script: |
+
             kubectl get pods
             kubectl get svc
             kubectl get ingress
