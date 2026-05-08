@@ -7,72 +7,59 @@ pool:
 variables:
   ACR_NAME: nodeacr98y0j
   IMAGE_NAME: node-docker-aks
-  tag: $(Build.BuildId)
+  IMAGE_TAG: $(Build.BuildId)
 
 stages:
 
 - stage: DeployToAKS
-
   displayName: Deploy to AKS
 
   jobs:
+  - job: AKSDeploy
+    displayName: AKS Deployment Job
 
-    - job: AKSDeploy
+    steps:
 
-      displayName: AKS Deployment Job
+    # ==========================================
+    # CHECKOUT
+    # ==========================================
+    - checkout: self
 
-      steps:
+    # ==========================================
+    # LOGIN TO AKS
+    # ==========================================
+    - task: AzureCLI@2
+      displayName: AKS Login
+      inputs:
+        azureSubscription: 'aks-service-connection'
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
+          az aks get-credentials \
+            --resource-group tfstate-milan-rg \
+            --name node-aks-demo-milan \
+            --overwrite-existing
 
-        # ==========================================
-        # CHECKOUT
-        # ==========================================
-        - checkout: self
+    # ==========================================
+    # UPDATE IMAGE
+    # ==========================================
+    - script: |
+        kubectl set image deployment/node-docker-aks \
+        node-docker-aks=$(ACR_NAME).azurecr.io/$(IMAGE_NAME):$(IMAGE_TAG)
+      displayName: Update AKS Image
 
-        # ==========================================
-        # LOGIN TO AKS
-        # ==========================================
-        - task: AzureCLI@2
+    # ==========================================
+    # VERIFY ROLLOUT
+    # ==========================================
+    - script: |
+        kubectl rollout status deployment/node-docker-aks
+      displayName: Verify Rollout
 
-          displayName: AKS Login
-
-          inputs:
-            azureSubscription: 'aks-service-connection'
-
-            scriptType: bash
-            scriptLocation: inlineScript
-
-            inlineScript: |
-              az aks get-credentials \
-              --resource-group tfstate-milan-rg \
-              --name node-aks-demo-milan \
-              --overwrite-existing
-        # ==========================================
-        # UPDATE IMAGE
-        # ==========================================
-        
-
-        - script: |
-            kubectl set image deployment/node-docker-aks \
-            node-docker-aks=$(ACR_NAME).azurecr.io/$(IMAGE_NAME):$(Build.BuildId)
-
-          displayName: Update AKS Image
-
-        # ==========================================
-        # VERIFY ROLLOUT
-        # ==========================================
-        - script: |
-
-            kubectl rollout status deployment/node-docker-aks
-
-          displayName: Verify Rollout
-
-        # ==========================================
-        # VERIFY DEPLOYMENT
-        # ==========================================
-        - script: |
-
-            kubectl get pods
-            kubectl get svc
-            kubectl get ingress
-
-          displayName: Verify Deployment
+    # ==========================================
+    # VERIFY DEPLOYMENT
+    # ==========================================
+    - script: |
+        kubectl get pods
+        kubectl get svc
+        kubectl get ingress
+      displayName: Verify Deployment
